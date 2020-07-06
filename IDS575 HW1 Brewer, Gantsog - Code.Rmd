@@ -1,0 +1,503 @@
+---
+title: "IDS575 HW1"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("/Users/cymorene/Documents/UIC/2018Spring/IDS575/HW1")
+```
+Scott Brewer  676075252
+Ono Gantsog
+
+## ESLII Ex. 2.8
+Compare the classification performance of linear regression and k- nearest neighbor classification on the zipcode data. In particular, consider only the 2's and 3's, and k = 1, 3, 5, 7 and 15. Show both the training and test error for each choice. The zipcode data are available from the book website www-stat.stanford.edu/ElemStatLearn.
+
+Import train and test zipcode data, rename target variable as Y, and check for NAs:
+```{r}
+setwd("/Users/cymorene/Documents/UIC/2018Spring/IDS575/HW1")
+train <- read.table('zip.train')
+test <- read.table('zip.test')
+names(train)[names(train)=="V1"] <- "Y"
+names(test)[names(test)=="V1"] <- "Y"
+sum(is.na(train))
+sum(is.na(test))
+
+```
+
+Subset train and test data to only include Y = 2 or 3 to reduce to a binary classification problem. Assign Y variables for later use:
+```{r}
+train23 <- subset(train, (Y == 2) | (Y == 3))
+test23 <- subset(test, (Y == 2) | (Y == 3))
+actual_train23 <- train23$Y
+actual_test23 <- test23$Y
+```
+Develop linear regression model on subset of training data and use model to predict Y using the same data:
+```{r}
+zip.lm <- lm(Y ~ ., data = train23)
+pred_train23 <- predict(zip.lm,train23)
+```
+Adjust predicted values to factorized values of 2 or 3. 
+```{r}
+pred_train23[pred_train23 < 2.5] <- 2
+pred_train23[pred_train23 >= 2.5] <- 3
+```
+Calculate confusion matrix for linear model using predictions on train data, then calculate error rate:
+```{r}
+table(pred_train23, actual_train23)
+1 - mean(pred_train23 == actual_train23) # Train error rate
+```
+Use linear model from above to predict on test set
+```{r}
+pred_test23 <- predict(zip.lm, test23)
+```
+Adjust predicted values to factorized values of 2 or 3.
+```{r}
+pred_test23[pred_test23 < 2.5] <- 2
+pred_test23[pred_test23 >= 2.5] <- 3
+```
+Calculate confusion matrix for linear model using predictions on train data, then calculate error rate:
+```{r}
+table(pred_test23, actual_test23)
+1 - mean(pred_test23 == actual_test23) # Test error rate
+```
+Comparing the lm train error and test error, we see the expected result of very low error on the train data and higher error on the test data. That said, the test error is quite low at ~4.1%.
+
+#### Develop KNN models for K=1,3,5,7,15 and calculate error for each on training and test data. Compare to error from linear model
+```{r}
+library(class) # Required for knn function
+```
+#### Train Data KNN
+Compute knn models for each k value using training data for model source and predictions:
+```{r}
+knn1_train <- knn(train = train23[,-1], test = train23[,-1], k=1, cl=as.factor(train23$Y))
+knn3_train <- knn(train = train23[,-1], test = train23[,-1], k=3, cl=as.factor(train23$Y))
+knn5_train <- knn(train = train23[,-1], test = train23[,-1], k=5, cl=as.factor(train23$Y))
+knn7_train <- knn(train = train23[,-1], test = train23[,-1], k=7, cl=as.factor(train23$Y))
+knn15_train <- knn(train = train23[,-1], test = train23[,-1], k=15, cl=as.factor(train23$Y))
+```
+Compute confusion matrices and error rates for each k value model:
+```{r}
+table(knn1_train, actual_train23)
+1 - mean(knn1_train == actual_train23) # Train error rate
+table(knn3_train, actual_train23)
+1 - mean(knn3_train == actual_train23) # Train error rate
+table(knn5_train, actual_train23)
+1 - mean(knn5_train == actual_train23) # Train error rate
+table(knn7_train, actual_train23)
+1 - mean(knn7_train == actual_train23) # Train error rate
+table(knn15_train, actual_train23)
+1 - mean(knn15_train == actual_train23) # Train error rate
+```
+As expected, error rates for K=1 on the train data are 0 as each point essentially predicts itself. Then, error on the training data rises from K=1 to K=15 as expected as the model goes from overfitting to more general.
+
+#### Test Data KNN
+Compute knn models for each k value using training data for model source and predictions:
+```{r}
+knn1_test <- knn(train = train23[,-1], test = test23[,-1], k=1, cl=as.factor(train23$Y))
+knn3_test <- knn(train = train23[,-1], test = test23[,-1], k=3, cl=as.factor(train23$Y))
+knn5_test <- knn(train = train23[,-1], test = test23[,-1], k=5, cl=as.factor(train23$Y))
+knn7_test <- knn(train = train23[,-1], test = test23[,-1], k=7, cl=as.factor(train23$Y))
+knn15_test <- knn(train = train23[,-1], test = test23[,-1], k=15, cl=as.factor(train23$Y))
+```
+Compute confusion matrices and error rates for each k value model:
+```{r}
+table(knn1_test, actual_test23)
+1 - mean(knn1_test == actual_test23)
+table(knn3_test, actual_test23)
+1 - mean(knn3_test == actual_test23) 
+table(knn5_test, actual_test23)
+1 - mean(knn5_test == actual_test23) 
+table(knn7_test, actual_test23)
+1 - mean(knn7_test == actual_test23) 
+table(knn15_test, actual_test23)
+1 - mean(knn15_test == actual_test23)
+```
+On the test data, the error rates are worse than the same train knn as expected. That said, the knn test error rates are all under 4% beating the earlier linear model error of 4.1%. In this case for 2 and 3 digits, the range of k values tested indicates that a lower k value should be used for the best error rates as K=1 had and error of 2.5% and K=15 had and error of 3.8% with the error values rising with K.
+
+## ISLR CH 2. Ex 5
+What are the advantages and disadvantages of a very flexible (versus a less flexible) approach for regression or classification? Under what circumstances might a more flexible approach be preferred to a less flexible approach? When might a less flexible approach be preferred?
+
+####Part a:
+A less flexible approach such as linear model is accurate when the underlying relationships are linear, but linear models naturally have high bias and low variance which may not be desired. A more flexible approach has an advantage because it can closely estimate an non-linear relationship but it will naturally have a high variance. Often, a less flexible approach is simpler and more interpretable, but at the loss of overall accuracy. Alternatively, more flexible models can be less interpretable, but more accurate. Additionally, the training error declines while the test error doesn't always decline.
+
+####Part b:
+A more flexible approach such as knn is preferred when there is modeling for prediction (ie not trying to determine a relationship). When there is a need for accurate predictions for response versus actual values and an interpretable result is not as important, flexible approaches are better than less flexible models such as linear regression.
+
+Linear models (inflexible) methods are mostly good at explaining how certain predictors are affecting the target variable, which is modeling for inference. When interpretability is very important and accuracy can suffer as a result of better interpretability, then a less-flexible approach may be more appropriate.  
+
+
+##ISLR Ch 2. Ex 7
+The table below provides a training data set containing six observations, three predictors, and one qualitative response variable.
+Obs.  X1	X2	X3	Y
+1     0	  3	  0	  Red
+2	    2	  0	  0 	Red
+3	    0	  1	  3	  Red
+4	    0	  1	  2	  Green
+5	    -1	0	  1	  Green
+6	    1	  1	  1	  Red
+Suppose we wish to use this data set to make a prediction for Y when X1 = X2 = X3 = 0 using K-nearest neighbors.
+(a) Compute the Euclidean distance between each observation and thetestpoint,X1 =X2 =X3 =0.  
+(b)  What is our prediction with K = 1? Why?  
+(c)  What is our prediction with K = 3? Why?  
+(d)  If the Bayes decision boundary in this problem is highly non- linear, then would we expect the best value for K to be large or small? Why?
+
+Create data object
+```{r}
+X <- c(0,2,0,0,-1,1,3,0,1,1,0,1,0,0,3,2,1,1)
+Y <- c('Red','Red','Red','Green','Green','Red')
+data <- matrix(c(X,Y), nrow = 6, ncol = 4)
+data <- as.data.frame(data, stringsAsFactors=FALSE)
+data$V1 <- as.numeric(data$V1)
+data$V2 <- as.numeric(data$V2)
+data$V3 <- as.numeric(data$V3)
+```
+
+#### Part a: Calculate Euclidean distance from (0,0,0) to each observation:
+```{r}
+d <- c()
+for (i in 1:nrow(data)){
+  a <- data[i,1:3]
+  b <- c(0,0,0)
+  d[i] <- sqrt(sum((a-b)^2))
+}
+d
+```
+
+#### Part b: Calculate and explain the prediction for (0,0,0) at K=1:
+From part a, observation 5 is nearest to (0,0,0) with a distance of 1.414 thus, the prediction for K=1 is Green.
+
+#### Part c: Calculate and explain the prediction for (0,0,0) at K=3.
+From part a, observations 2, 5, and 6 are nearest to (0,0,0) with distances of 2.000, 1.414, and 1.732 respectively. The classifications of the these points are Red, Green, and Red, therefore for K=3, the majority class is Red, which will be the prediction for (0,0,0) at K=3.
+
+#### Part d: If the Bayes decision boundary is highly non-linear, would the best value for K be large or small? Why?
+Smaller values of K tend to yield more non-linear decision boundaries, with many boundaries around localized pockets at very low values (ie overfitting training data) while larger values of K tend toward more and more linear boundaries, therefore to mimic a non-linear Bayes decision boundary, the expected value for K would be small.
+
+
+## ISLR Ch 2. Ex. 10
+This exercise involves the Boston housing data set.   
+(a)  To begin, load in the Boston data set. The Boston data set is part of the MASS library in R. How many rows are in this data set? How many columns? What do the rows and columns represent?  
+(b)  Make some pairwise scatterplots of the predictors (columns) in this data set. Describe your findings.  
+(c)  Are any of the predictors associated with per capita crime rate? If so, explain the relationship.  
+(d)  Do any of the suburbs of Boston appear to have particularly high crime rates? Tax rates? Pupil-teacher ratios? Comment on the range of each predictor.  
+(e)  How many of the suburbs in this data set bound the Charles river?  
+(f)  What is the median pupil-teacher ratio among the towns in this data set?  
+(g)  Which suburb of Boston has lowest median value of owner- occupied homes? What are the values of the other predictors for that suburb, and how do those values compare to the overall ranges for those predictors? Comment on your findings.  
+(h)  In this data set, how many of the suburbs average more than seven rooms per dwelling? More than eight rooms per dwelling? Comment on the suburbs that average more than eight rooms per dwelling.  
+
+###Part a. How many rows are in this data set? How many columns? 
+Load data:
+```{r}
+library(MASS)
+Boston <- Boston
+```
+#### Part a: What do the rows and columns represent?
+The Boston data frame has 506 rows and 14 columns. Each column is a feature, each row is a town
+crim - per capita crime rate by town.
+zn - proportion of residential land zoned for lots over 25,000 sq.ft.
+indus - proportion of non-retail business acres per town.
+chas - Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+nox - nitrogen oxides concentration (parts per 10 million).
+rm - average number of rooms per dwelling.
+age - proportion of owner-occupied units built prior to 1940.
+dis- weighted mean of distances to five Boston employment centres.
+rad - index of accessibility to radial highways.
+tax - full-value property-tax rate per \$10,000.
+ptratio - pupil-teacher ratio by town.
+black - 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
+lstat - lower status of the population (percent).
+medv - median value of owner-occupied homes in \$1000s.
+
+####Part b: Make some pairwise scatterplots of the predictors (columns) in this data set. Describe your findings.
+
+```{r}
+pairs(Boston)
+```
+From the plots above, we can see the following relationships:
+nox and age are positively correlated.
+nox and dis are negatively correlated.
+rm and lstat are negatively correlated
+rm and medv are positively correlated.
+lstat and medv are negatively correlated.
+
+####Part c Are any of the predictors associated with per capita crime rate? If so, explain the relationship. 
+```{r}
+cormat <- cor(Boston)
+cormat
+```
+From the correlation matrix, we see that crim and rad are positively correlated (0.62) and crim and nox are inversely correlated (0.76923011).
+
+
+####Part d Do any of the suburbs of Boston appear to have particularly high crime rates? Tax rates? Pupil-teacher ratios? Comment on the range of each predictor.
+```{r}
+library(psych)
+max(Boston$crim) #[1] 88.9762
+range(Boston$crim)
+describe(Boston$crim)
+plot(Boston$crim)
+
+max(Boston$tax) #[1] 711
+range(Boston$tax)
+describe(Boston$tax)
+plot(Boston$tax)
+
+max(Boston$ptratio)
+range(Boston$ptratio)
+describe(Boston$ptratio)
+plot(Boston$ptratio)
+```
+
+From numbers of describe function and plot, we see that crim rate of 88,98 is outlier in the data. Median value for crime rate is 0.26. There are only 54 suburbs that has crime rate higher than 10. Range for crime rate is 0 - 89.
+
+Tax rate is also skewed data, median is at 330 and max value is at 711. 137 suburbs have higher tax rate than 600. But tax rate predictor is less skewed than the crime rate predictor. Range for tax rate is 187 - 711.
+
+Pupil-teacher max ratio, 22, is actually closer to its median value (19) and its range is 12.6 - 22. It is skewed to the left, majority of the suburbs have ratio more than 20.
+
+
+####10e How many of the suburbs in this data set bound the Charles river?
+```{r}
+sum(Boston$chas)
+```
+
+35 of the suburbs are bound to Charles river.
+
+
+####10f What is the median pupil-teacher ratio among the towns in this data set?
+```{r}
+boxplot(Boston$ptratio)
+median(Boston$ptratio)
+```
+Median pupil-teacher ratio amound the towns is 19.05.
+
+
+####10g Which suburb of Boston has lowest median value of owner- occupied homes? What are the values of the other predictors for that suburb, and how do those values compare to the overall ranges for those predictors? Comment on your findings.
+
+```{r}
+min(Boston$medv)
+Boston[which.min(Boston$medv),]
+
+for(i in 1:ncol(Boston))
+{ predictor <- colnames(Boston)[i]
+print(paste(predictor, ": ", Boston[which.min(Boston$medv),][predictor], ", ", range(Boston[[predictor]])[1] , " - " , range(Boston[[predictor]])[2]))
+}
+```
+The suburb with index 399 has lowest median value of 5. 
+
+In the result below, we displayed each predictor name, value of the predictor of the suburb that has min median value and the range of the predictor. From the result, we see that 'Accessability index to highway' and 'Black proportion' predictors have max values.
+
+
+####10h In this data set, how many of the suburbs average more than seven rooms per dwelling? More than eight rooms per dwelling? Comment on the suburbs that average more than eight rooms per dwelling.
+```{r}
+nrow(Boston[Boston$rm>7,])
+
+nrow(Boston[Boston$rm>8,]) 
+
+Boston[Boston$rm>8,]
+```
+64 suburbs have average higher than seven rooms per dwelling and 13 suburbs have average higher than eight rooms per dwelling.
+From the result, we see that most of the suburbs have low values in 'Accessability index', 'Pupil-teacher ratio', 'Tax rate' and 'Distance to employement center'
+
+##ISLR Ch. 3 Ex. 9
+This question involves the use of multiple linear regression on the Auto data set. 
+(a)  Produce a scatterplot matrix which includes all of the variables in the data set.  
+(b)  Compute the matrix of correlations between the variables using the function cor(). You will need to exclude the name variable, which is qualitative.  
+(c)  Use the lm() function to perform a multiple linear regression with mpg as the response and all other variables except name as the predictors. Use the summary() function to print the results. Comment on the output. For instance:  
+i. Is there a relationship between the predictors and the response?  
+ii. Which predictors appear to have a statistically significant relationship to the response?  
+iii. What does the coefficient for the year variable suggest?  
+(d)  Use the plot() function to produce diagnostic plots of the linear regression fit. Comment on any problems you see with the fit. Do the residual plots suggest any unusually large outliers? Does the leverage plot identify any observations with unusually high leverage?  
+(e)  Use the * and : symbols to fit linear regression models with interaction effects. Do any interactions appear to be statistically significant?  
+(f)  Try a few different transformations of the variables, such as log(X), sqrt(X), X2. Comment on your findings.
+
+Load data and check for NAs:
+```{r}
+library(ISLR)
+data <- Auto
+sum(is.na(data))
+```
+
+#### Part a: Produce a scatterplot matrix for all variables in the data set
+```{r}
+pairs(Auto)
+```
+
+#### Part b: Compute the matrix of correlations between the variables using the function cor(). You will need to exclude the name variable, which is qualitative.
+```{r}
+corMatrix <- cor(data[,-9])
+corMatrix
+```
+#### Part c: Perform multiple linear regression with mpg as response and all others (except name) as predictors
+```{r}
+lmfit <- lm(mpg ~ . -name, data) 
+summary(lmfit)
+```
+From the summary we see that there are statistically significant relationships between several variables and mpg: displacement, weight, year, and origin. Other variables were notstatistically significant: cylinders, horsepower, acceleration. The calculated coefficients indicate how much one unit of change in the variable would change the mpg, for instance a year increase will increase mpg by 0.750773 while 1 lb increase in weight will decrease mpg by .006474. Overall, the lm fit is pretty good, with an R^2 of 0.8215, as being closer to 1 indicates a better fit.
+
+#### Part d: Plot diagnostic graphs for lmfit and comment
+```{r}
+par(mfrow=c(2,2))
+plot(lmfit)
+```
+The residual plot is heteroschedastic with definite U shape. Several outliers are also present in the upper range for observations 323, 327, and 387. Overall, the Q-Q plot indicates normality, except at the lower and upper ends where the previously noted outliers deviate from normality. The leverage chart looks good with the exception of some of the same outliers from before, but also a new one: Observation 14 has an expectionally high leverage.
+
+#### Part e: Use * and : operators in the fit to investigate for interactions
+First, we use vif() and the scatter matrix to identify potential interactions
+```{r}
+library(car)
+vif(lmfit)
+```
+From vif, we see that cylinders, displacement, horsepower, and weight all have likely collinearity. The scatterplot from earlier confirms that these variables show clear patterns among each other. Additionally, general car knowledge supports a relationship among these variables
+```{r}
+lmfitint1 <- lm(mpg ~ horsepower*cylinders*displacement*weight + acceleration + year + origin, data)
+summary(lmfitint1)
+```
+Based on fitting with interactions with high vif variables, re-fit with most significant interactions. The main effect for interacting variables remains included:
+```{r}
+lmfitint2 <- lm(mpg ~ horsepower:cylinders:weight +
+                  horsepower:weight +
+                  cylinders:weight +
+                  horsepower + cylinders + weight + displacement + acceleration + year + origin, data)
+summary(lmfitint2)
+```
+There's a much improved F stat over interacting all collinear variables, but some aren't significant now
+```{r}
+lmfitint3 <- lm(mpg ~ horsepower:cylinders:weight +
+                  horsepower + cylinders + weight + displacement + acceleration + year + origin, data)
+summary(lmfitint3)
+vif(lmfitint3)
+```
+Here we see our highest F stat yet, but let's try some adding a few more interactions based on scatterplot:
+```{r}
+lmfitint4 <- lm(mpg ~ horsepower:cylinders:weight +
+                  acceleration:horsepower +
+                  horsepower + cylinders + weight + displacement + acceleration + year + origin, data)
+summary(lmfitint4)
+```
+After trying a few more interactions, lmfitint3 is currently the highest F stat model
+```{r}
+par(mfrow=c(2,2))
+plot(lmfitint3)
+```
+Residuals are much more heteroschedastic and the lower end of Q-Q shows more normality, while top end is still skewed
+
+#### Part f: Try a few transformations.
+Based on curved scatterplots for mpg vs displacement, horsepower, weight, and acceleration let's start by transforming those variables: 
+```{r}
+lmfit.xf <- lm(mpg ~ I(1/horsepower) + I(1/weight) + I(1/displacement) + I(log(acceleration)) +
+                 cylinders + year + origin, data)
+summary(lmfit.xf)
+vif(lmfit.xf)
+```
+After trying various transforms, like X^2, sqrt, and log, inspection of the scatterplots suggested an inverse relationship for hp, wt, and disp, with a log relationship for accelaration. This combo yields the highest F stat yet. Now let's use the highest vif transformed values for potential interactions:
+```{r}
+lmfit.int.xf <- lm(mpg ~ I(1/horsepower):I(1/weight):I(1/displacement) +
+                  I(1/horsepower) + I(1/weight) + I(log(acceleration)) +
+                    cylinders+ displacement + year + origin, data)
+summary(lmfit.int.xf)
+```
+That didn't add value. At this point, let's try removing the highest p value variables cylinders and displacement
+```{r}
+lmfit.xf.select <- lm(mpg ~ I(1/horsepower) + I(1/weight) + I(log(acceleration)) +
+                  + year + origin, data)
+summary(lmfit.xf.select)
+```
+The best model yet by F stat and R2, let's check its plots:
+```{r}
+par(mfrow=c(2,2))
+plot(lmfit.xf.select)
+```
+Here we see a funnel shape in the residuals, per ISLR that shape can be addressed with a log or sqrt transform on Y, so let's try transforming mpg via sqrt and log:
+```{r error=TRUE}
+lmfit.xf.select1 <- lm(I(log(mpg)) ~ I(1/horsepower) + I(1/weight) +
+                         acceleration + cylinders + displacement + year + origin, data)
+summary(lmfit.xf.select1)
+par(mfrow=c(2,2))
+plot(lmfit.xf.select1)
+```
+Here we see no shape to residuals and the QQ chart indicates normality. Due to the transform of mpg, cylinders and displacement were re-added. Overall this model has a lower F stat than untransformed mpg, but better residuals and QQ normality measures, thus transformed mpg has a better linear relationship with the variables and should be used.
+
+##ISLR Ch 3. Ex. 15
+This problem involves the Boston data set, which we saw in the lab for this chapter. We will now try to predict per capita crime rate using the other variables in this data set. In other words, per capita crime rate is the response, and the other variables are the predictors.  
+(a)  For each predictor, fit a simple linear regression model to predict the response. Describe your results. In which of the models is there a statistically significant association between the predictor and the response? Create some plots to back up your assertions.  
+(b)  Fit a multiple regression model to predict the response using all of the predictors. Describe your results. For which predictors can we reject the null hypothesis H0 : βj = 0?  
+(c)  How do your results from (a) compare to your results from (b)? Create a plot displaying the univariate regression coefficients from (a) on the x-axis, and the multiple regression coefficients from (b) on the y-axis. That is, each predictor is displayed as a single point in the plot. Its coefficient in a simple linear regression model is shown on the x-axis, and its coefficient estimate in the multiple linear regression model is shown on the y-axis.  
+
+(d)  Is there evidence of non-linear association between any of the predictors and the response? To answer this question, for each predictor X, fit a model of the form:  
+Y = β0 +β1X +β2X2 +β3X3 +ε.  
+
+#### Part a: For each predictor, fit a simple linear regression model 
+
+```{r}
+prData <-Boston
+n <- ncol(prData)-1
+townPredictor <-rep(NA, n)
+townCorrelation <-rep(NA,n)
+townCoef <- rep(NA, n)
+townPvalue <- rep(NA, n)
+for(i in 2:ncol(prData))
+{ predictor <- colnames(prData)[i]
+  fit <- lm(crim ~ prData[[predictor]], data= prData)
+  townPredictor[i-1] <- predictor
+  townCorrelation[i-1] <-summary(fit)$adj.r.squared
+  townCoef[i-1] <- fit$coefficients[2]
+  townPvalue[i-1] <- summary(fit)$coefficients[2,4]
+}
+corCrim<-data.frame(townPredictor, townCorrelation, townCoef, townPvalue)
+corCrim
+
+```
+
+From the matrix that consists of  each predictor, correlation with crime rate, coefficient of the predictor and p-value of simple linear regression, we see that only the predictor "chas" is not associanted statistically significant to crim. The other predictors all have p-value less than 5%, which means there is a statistically significant association with the response.
+
+```{r}
+par(mfrow=c(2,2))
+zn_fit <- lm(crim ~ zn, data= Boston)
+summary(zn_fit)
+plot(zn_fit)
+
+chas_fit <- lm(crim ~ chas, data= Boston)
+summary(chas_fit)
+plot(chas_fit)
+```
+For comparison, we put two linear regression model plots. One is of predictor zn (example of statistically significant association) and the other is predictor chas (the one predictor that does not have association).
+
+#### Part b:   Fit a multiple regression model to predict the response 
+
+```{r}
+mfit <-lm(crim ~ ., data = prData)
+summary(mfit)
+mfit$coefficients
+par(mfrow=c(2,2))
+plot(mfit)
+```
+Since p-value is less than 5%, we can reject Null hypothesis for the predictors zn, dis, rad, black and medv. Adjusted r-square of the model is 0.44 and p-value is less than 2.2e-16.
+
+#### Part c:  How do your results from (a) compare to your results from (b)? 
+```{r}
+#dev.off()
+plot(townCoef, mfit$coefficients[-1], main = "Single regression vs Multiple regression",    xlab = "Univariate regression coefficients", ylab = "Multiple regression coefficients")
+```
+An interesting observation from the plot is that coefficients of the predictors are clustered around 0 both in simple and multiple linear models except for predictor nox. That means one unit change of nox affects response much higher than the other predictors.
+
+#### Part d: Is there evidence of non-linear association between any of the predictors and the response? 
+```{r}
+nlPred <-rep(NA, n)
+nlCorr <-rep(NA,n)
+nlPvalue<-rep(NA,n)
+
+for(i in 2:ncol(prData))
+{ 
+  predictor <- colnames(prData)[i]
+  nlfit <- lm(crim ~ prData[[predictor]] + prData[[predictor]]^2 + prData[[predictor]]^3, data= prData)
+  nlPred[i-1] <- predictor
+  nlCorr[i-1] <-summary(nlfit)$adj.r.squared
+  nlPvalue[i-1] <- summary(nlfit)$coefficients[2,4]
+}
+
+townPvalue
+nlPvalue
+
+townCorrelation
+nlCorr
+```
+In the comparison of pvalue of single and multiple linear models, there is not change in the numbers. Same is true for correlation numbers. There is no better non-linear association with the response. 

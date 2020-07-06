@@ -1,0 +1,433 @@
+---
+title: "IDS575 HW2"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+#Test
+##Test
+###Test
+####Test
+
+### ESL2 Ex. 3.6:  
+####Show that the ridge regression estimate is the mean (and mode) of the posterior distribution, under a Gaussian prior β∼N(0,τI), and Gaussian sampling model y∼N(Xβ,σ2I). Find the relationship between the regularization parameter λ in the ridge formula, and the variances τ and σ2.
+
+
+### ISLR Ex. 3.14[a-f]:
+####This problem focuses on the collinearity problem.  
+####(a) Perform the following commands in R:  
+```{r}
+set.seed(1)
+x1=runif(100)
+x2=0.5*x1+rnorm(100)/10
+y=2+2*x1+0.3*x2+rnorm(100)
+```
+####The last line corresponds to creating a linear model in which y is a function of x1 and x2. Write out the form of the linear model. What are the regression coefficients?  
+Linear Model: y = 2 + 2\*x1 + .3\*x2 + error
+Intercept (β0) is 2
+Regression coefficient for x1 (β1) is 2
+Regression coefficient for x2 (β2) is 0.3  
+
+####(b) What is the correlation between x1 and x2? Create a scatterplot displaying the relationship between the variables.  
+```{r}
+plot(x1, x2, main="Scatterplot of x1 and x2")
+```
+From the graph, we can see that x1 and x2 have a relatively strong positive correlation, which is confirmed with the cor() function:
+```{r}
+cor(x1,x2)
+```
+####(c) Using this data, fit a least squares regression to predict y using x1 and x2. Describe the results obtained. What are βˆ0, βˆ1, and βˆ2? How do these relate to the true β0, β1, and β2? Can you reject the null hypothesis H0 : β1 = 0? How about the null hypothesis H0 : β2 = 0?  
+```{r}
+lr <- lm(y ~ x1 + x2)
+summary(lr)
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(lr)
+```
+
+We can reject the null hypothesis for x1, because p-value for x1 = 0.049 which is less than 0.05, but we can't reject the null hypothesis for x2 because the p-value for x2=0.38.  
+The regression coefficients are:  
+β0hat = 2.13  
+β1hat = 1.44  
+β2hat = 1.01  
+But we know that the true coefficients are:  
+β0 = 2  
+β1 = 2  
+β2 = .3  
+Obviously fitted coefficients are similar to the true coefficients, but are also different - especially β2hat.  
+
+####(d) Now fit a least squares regression to predict y using only x1. Comment on your results. Can you reject the null hypothesis H0 :β1 =0?  
+```{r}
+lr1 <- lm(y ~ x1)
+summary(lr1)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(lr1)
+```  
+
+The regression coefficients are now:  
+β0hat = 2.11  
+β1hat = 1.98  
+Which are very similar to the true coefficients.  
+Additionally, we can reject the null hypothesis because the p value for x1 is very small.  
+
+####(e) Now fit a least squares regression to predict y using only x2. Comment on your results. Can you reject the null hypothesis H0 :β1 =0?  
+```{r}
+lr2 <- lm(y ~ x2)
+summary(lr2)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(lr2)
+```  
+
+The regression coefficients are now:  
+β0hat = 2.39  
+β2hat = 2.90  
+Which are different than the true coefficients.  
+Additionally, we can reject the null hypothesis because the p value for x2 is very small. 
+
+####(f) Do the results obtained in (c)–(e) contradict each other? Explain your answer.  
+The results from parts c-e don't contradict each other. Instead, they are showing that there is a degree of collinearity between x1 and x2. We can calculate VIF to determine the degree of collinearity:
+```{r}
+library(car)
+vif(lr)
+```
+These results indicate that there is collinearity between x1 and x2, but as the VIF values are less than the 5-10 range, it is not yet problematic.
+
+### ISLR Ex. 4.5:
+####We now examine the differences between LDA and QDA.  
+
+####(a) If the Bayes decision boundary is linear, do we expect LDA or QDA to perform better on the training set? On the test set?  
+For a linear Bayes decision boundary, we expect LDA to perform better than QDA on both the training and test sets, with performance on the training set being better than the performance on the test set. This is due to a linear decision boundary being indicative of common covariance matrices between the two classes, which is an assumption of LDA, but not QDA. So, while this assumption holds, LDA should have both low variance and low bias.  
+
+####(b) If the Bayes decision boundary is non-linear, do we expect LDA or QDA to perform better on the training set? On the test set?  
+For a non-linear Bayes decision boundary, we expect QDA to perform better than LDA on both the training and test sets, with performance on the training set being better than the performance on the test set. This is due to the non-linear decision boundary being indicative of unequal covariance matrices between the two classes, which is an assumption of QDA, but not LDA. So, while this assumption holds, QDA should have both low variance and low bias.  
+
+####(c) In general, as the sample size n increases, do we expect the test prediction accuracy of QDA relative to LDA to improve, decline, or be unchanged? Why?  
+
+Generally, as the sample size increases, we expect test prediction accuracy of QDA to increase relative to LDA. This expectation is due to the inherent variation difference between the models due to thier assumptions about covariance matrices among classes between the LDA and QDA. Since LDA assumes each class has a common covariance matrix, the number of matrices to calculate is a factor of p varaiables squared, whereas a different covariance matrix for each class yields a factor of K*p^2 covariance matrices, which greatly increases the variance of QDA vs LDA. With this background, we would generally prefer LDA vs QDA for smaller data sets (assuming that the data at least roughly adheres to LDA's assumptions). But as data size increases, the advantage of lower variability inherent in LDA is lost since the variablity of any series of numbers evens out due to thoeries of central tendency (assuming no extreme outliers). So, once data is sufficiently large, the increased flexibility of QDA is worth the the increased variability since the relative magnitudes of variability have gotten closer.  
+
+####(d) True or False: Even if the Bayes decision boundary for a given problem is linear, we will probably achieve a superior test error rate using QDA rather than LDA because QDA is flexible enough to model a linear decision boundary. Justify your answer.  
+
+False. While it is true that QDA is a more flexible model than LDA, that flexibility comes with the potential to overfit on training data, so while QDA may generate better training error rates, it's inherently greater variability will always generate worse test error rates that LDA assuming a linear decision boundary.
+
+### ISLR Ex. 4.6:
+####Suppose we collect data for a group of students in a statistics class with variables X1 = hours studied, X2 = undergrad GPA, and Y = receive an A. We fit a logistic regression and produce estimated coefficient, βˆ0 = −6, βˆ1 = 0.05, βˆ2 = 1.  
+
+####(a) Estimate the probability that a student who studies for 40 h and has an undergrad GPA of 3.5 gets an A in the class.  
+```{r}
+hrs <- 40
+gpa <- 3.5
+#log(p/(1-p)) = b0 + b1*hours + b2*gpa
+log.odds <- -6 + .05*hrs + 1*gpa
+odds <- exp(log.odds)
+prob <- odds/(1+odds)
+prob
+```
+The student has a probability of 0.38 of getting an A in the class.  
+
+####(b) How many hours would the student in part (a) need to study to have a 50 % chance of getting an A in the class?  
+```{r}
+gpa <- 3.5
+prob <- .5
+log.odds <- log(prob/(1-prob))
+hrs <- (log.odds + 6 - 1*gpa)/.05
+hrs
+```
+According to the model, the same student would have to study 50 hrs to have a 50% chance of getting an A in the class.  
+
+### ISLR Ex. 4.10:
+####This question should be answered using the Weekly data set, which is part of the ISLR package. This data is similar in nature to the Smarket data from this chapter’s lab, except that it contains 1,089 weekly returns for 21 years, from the beginning of 1990 to the end of 2010.  
+```{r}
+library(ISLR)
+df <- Weekly
+```
+
+####(a) Produce some numerical and graphical summaries of the Weekly data. Do there appear to be any patterns?  
+```{r}
+names(df)
+dim(df)
+summary(df)
+cor(df[,-9])
+```
+```{r}
+plot(df)
+```
+
+####(b) Use the full data set to perform a logistic regression with Direction as the response and the five lag variables plus Volume as predictors. Use the summary function to print the results. Do any of the predictors appear to be statistically significant? If so, which ones?  
+```{r}
+glm.fit <- glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data = df, family='binomial')
+summary(glm.fit)
+```
+Lag2 is statistically significant with a p value of .0296 and Lag1 is almost statistically significant with a p value of .1181.  
+
+####(c) Compute the confusion matrix and overall fraction of correct predictions. Explain what the confusion matrix is telling you about the types of mistakes made by logistic regression.  
+```{r}
+glm.prob <- predict(glm.fit, newdata = df, type = 'response')
+glm.pred <- ifelse(glm.prob>.5, 'Up', 'Down')
+table(glm.pred,df$Direction)
+mean(glm.pred==df$Direction)
+```
+The confusion matrix is a table with actual values crossed with predicted values resulting in four quadrants (for a binary class), with the diagonal indicating True Negative and True Positive Predictions, and the off diagonal values indicating False Negatives and False Positives. The confusion matrix is telling us that the logistic model has an accuracy of 55%.
+
+####(d) Now fit the logistic regression model using a training data period from 1990 to 2008, with Lag2 as the only predictor. Compute the confusion matrix and the overall fraction of correct predictions for the held out data (that is, the data from 2009 and 2010).  
+```{r}
+train <- which(df$Year<2009)
+glm.fit <- glm(Direction~Lag2, data = df, subset = train, family='binomial')
+glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+glm.pred <- ifelse(glm.prob>.5, 'Up', 'Down')
+table(glm.pred,df$Direction[-train])
+mean(glm.pred==df$Direction[-train])
+```
+
+####(e) Repeat (d) using LDA.  
+```{r}
+library(MASS)
+train <- which(df$Year<2009)
+lda.fit <- lda(Direction~Lag2, data = df, subset = train)
+lda.pred <- predict(lda.fit, newdata = df[-train,])
+table(lda.pred$class,df$Direction[-train])
+mean(lda.pred$class==df$Direction[-train])
+```
+
+
+####(f) Repeat (d) using QDA.  
+```{r}
+library(MASS)
+train <- which(df$Year<2009)
+qda.fit <- qda(Direction~Lag2, data = df, subset = train)
+qda.pred <- predict(qda.fit, newdata = df[-train,])
+table(qda.pred$class,df$Direction[-train])
+mean(qda.pred$class==df$Direction[-train])
+```
+
+####(g) Repeat (d) using KNN with K = 1.  
+```{r}
+library(class)
+train <- which(df$Year<2009)
+train.X <- as.data.frame(df[train,which(names(df)=='Lag2')])
+test.X <- as.data.frame(df[-train,which(names(df)=='Lag2')])
+
+train.Y <- df[train,]$Direction
+test.Y <- df[-train,]$Direction
+
+set.seed(1)
+knn.pred <- knn(train.X,test.X,train.Y,k=1)
+table(knn.pred,test.Y)
+mean(knn.pred==test.Y)
+```
+
+####(h) Which of these methods appears to provide the best results on this data?  
+LDA and Logistic Regression both predict Direction on test data (2009 and 2010) with an accuracy of 62.5% vs QDA with 58.7% and KNN=1 at 50%. So, for this data, Logistic Regression or LDA would be preferred.  
+
+####(i) Experiment with different combinations of predictors, including possible transformations and interactions, for each of the methods. Report the variables, method, and associated confusion matrix that appears to provide the best results on the held out data. Note that you should also experiment with values for K in the KNN classifier.  
+
+####KNN with predictor Lag1 and k=1 to k=25  
+
+```{r}
+library(class)
+train <- which(df$Year<2009)
+
+train.X <- as.data.frame(df[train,which(names(df)=='Lag1')])
+test.X <- as.data.frame(df[-train,which(names(df)=='Lag1')])
+
+train.Y <- df[train,]$Direction
+test.Y <- df[-train,]$Direction
+
+acc <- vector(length=25)
+for (k in 1:25){
+  set.seed(1)
+  knn.pred <- knn(train.X,test.X,train.Y,k=k)
+  acc[k] <- mean(knn.pred==test.Y)
+}
+#plot(1:25,acc, type='l')
+k.opt <- min(which(acc==max(acc)))
+set.seed(1)
+knn.pred <- knn(train.X,test.X,train.Y,k=k.opt)
+print(paste('Optimal k =',k.opt))
+table(knn.pred,test.Y)
+mean(knn.pred==test.Y)
+```
+####KNN with predictor all predictors except Today and Year and k=1 to k=25  
+```{r}
+library(class)
+train <- which(df$Year<2009)
+
+train.X <- df[train,2:7] # Select all but Year and Today
+test.X <- df[-train,2:7]
+
+train.Y <- df[train,]$Direction
+test.Y <- df[-train,]$Direction
+
+acc <- vector(length=25)
+for (k in 1:25){
+  set.seed(1)
+  knn.pred <- knn(train.X,test.X,train.Y,k=k)
+  acc[k] <- mean(knn.pred==test.Y)
+}
+#plot(1:25,acc, type='l')
+k.opt <- min(which(acc==max(acc)))
+set.seed(1)
+knn.pred <- knn(train.X,test.X,train.Y,k=k.opt)
+print(paste('Optimal k =',k.opt))
+table(knn.pred,test.Y)
+mean(knn.pred==test.Y)
+```
+####LDA with Lag1, Lag2 as predictors and polynomials  
+
+```{r}
+library(MASS)
+train <- which(df$Year<2009)
+lda.fit <- lda(Direction~Lag1+Lag2, data = df, subset = train)
+lda.pred <- predict(lda.fit, newdata = df[-train,])
+lda.class <- ifelse(lda.pred$posterior[,2]>.5,'Up','Down')
+table(lda.pred$class,df$Direction[-train])
+mean(lda.pred$class==df$Direction[-train])
+```
+####Logistic regression with Lag1, Lag2 as predictors  
+```{r}
+train <- which(df$Year<2009)
+glm.fit <- glm(Direction ~  Lag1 + Lag2, data = df, subset = train, family='binomial')
+glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+glm.pred <- ifelse(glm.prob>.5, 'Up', 'Down')
+table(glm.pred,df$Direction[-train])
+mean(glm.pred==df$Direction[-train])
+glm.fit$formula
+```
+####Logistic Regression with Lag2 as predictors trying increasing polynomials 1-5 power 
+```{r}
+train <- which(df$Year<2009)
+acc <- vector(length = 6)
+for (i in 1:6) {
+  glm.fit <- glm(Direction~poly(Lag2,i), data = df, subset = train, family='binomial')
+  glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+  glm.pred <- ifelse(glm.prob>.5, 'Up', 'Down')
+  table(glm.pred,df$Direction[-train])
+  acc[i] <- mean(glm.pred==df$Direction[-train])
+}
+#plot(1:10,acc, type='l')
+pwr.opt <- which(acc==max(acc))
+print(paste('Optimal power =',pwr.opt))
+acc[pwr.opt]
+```
+
+####Logistic regression with Lag1, Lag2 as one predictors in the form of Lag1*Lag2  
+```{r}
+train <- which(df$Year<2009)
+glm.fit <- glm(Direction ~  Lag1*Lag2, data = df, subset = train, family='binomial')
+glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+glm.pred <- ifelse(glm.prob>.5, 'Up', 'Down')
+table(glm.pred,df$Direction[-train])
+mean(glm.pred==df$Direction[-train])
+glm.fit$formula
+```
+####Logistic regression with Lag2 as predictor for finding cutoff point for classification  
+```{r}
+train <- which(df$Year<2009)
+acc <- vector(length=1000)
+for (i in 1:1000) {
+  glm.fit <- glm(Direction ~ Lag2, data = df, subset = train, family='binomial')
+  glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+  glm.pred <- ifelse(glm.prob>i/1000, 'Up', 'Down')
+  acc[i] <- mean(glm.pred==df$Direction[-train])
+}
+
+cutoff.opt <- which(acc==max(acc))/1000
+print(paste('Optimal cutoff =',cutoff.opt, 'with accuracy',acc[cutoff.opt*1000]))
+glm.fit$formula
+```
+```{r}
+plot(1:1000/1000,acc,type='l')
+```
+
+####Subset selection for Logistic regression
+```{r}
+train <- which(df$Year<2009)
+glm.fit <- glm(Direction ~  .-Year-Today, data = df, subset = train, family='binomial')
+glm.fit <- step(glm.fit, direction='both')
+summary(glm.fit)
+glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+glm.pred <- ifelse(glm.prob>.5, 'Up', 'Down')
+table(glm.pred,df$Direction[-train])
+mean(glm.pred==df$Direction[-train])
+glm.fit$formula
+```
+####Logistic regression with Lag1, Lag2 as predictors and plot for finding cutoff point  
+```{r}
+train <- which(df$Year<2009)
+acc <- vector(length=200)
+for (i in 1:1000) {
+  glm.fit <- glm(Direction ~ Lag1+Lag2, data = df, subset = train, family='binomial')
+  glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+  glm.pred <- ifelse(glm.prob>i/1000, 'Up', 'Down')
+  acc[i] <- mean(glm.pred==df$Direction[-train])
+}
+
+cutoff.opt <- which(acc==max(acc))/1000
+print(paste('Optimal cutoff =',cutoff.opt, 'with accuracy',acc[cutoff.opt*1000]))
+glm.fit$formula
+```
+```{r}
+plot(1:1000/1000,acc,type='l')
+```
+
+####LDA with Lag1, Lag2 and plot for finding cutoff point  
+```{r}
+library(MASS)
+train <- which(df$Year<2009)
+acc <- vector(length = 1000)
+for (i in 1:1000) {
+  lda.fit <- lda(Direction~Lag1+Lag2, data = df, subset = train)
+  lda.pred <- predict(lda.fit, newdata = df[-train,])
+  lda.class <- ifelse(lda.pred$posterior[,2]>i/1000,'Up','Down')
+  acc[i] <- mean(lda.class==df$Direction[-train])
+}
+cutoff.opt <- which(acc==max(acc))/1000
+print(paste('Optimal cutoff =',cutoff.opt, 'with accuracy',acc[cutoff.opt*1000]))
+lda.fit$formula
+```
+```{r}
+plot(1:1000/1000,acc,type='l')
+```
+
+####Subset selection on powers of Lag1 and Lag2 with Logistic regression
+```{r}
+formula <- as.formula(Direction~Lag1+I(Lag1^2)+I(Lag1^3)+I(Lag1^4)+
+                        Lag2+I(Lag2^2)+I(Lag2^3)+I(Lag2^4))
+glm.fit <- glm(formula, data = df, subset = train, family='binomial')
+glm.fit <- step(glm.fit,direction = 'both')
+form.opt <- glm.fit$formula
+```
+####Cutoff selection with Lag1 and Lag2 powers formula from above
+```{r}
+train <- which(df$Year<2009)
+acc <- vector(length=1000)
+for (i in 1:1000) {
+  glm.fit <- glm(form.opt, data = df, subset = train, family='binomial')
+  glm.prob <- predict(glm.fit, newdata = df[-train,], type = 'response')
+  glm.pred <- ifelse(glm.prob>i/1000, 'Up', 'Down')
+  acc[i] <- mean(glm.pred==df$Direction[-train])
+}
+
+cutoff.opt <- which(acc==max(acc))/1000
+print(paste('Optimal cutoff =',cutoff.opt, 'with accuracy',acc[cutoff.opt*1000]))
+glm.fit$formula
+```
+```{r}
+plot(1:1000/1000,acc,type='l')
+```
+
+Overall, Logistic regression and LDA remained the top models. We were able to increase the accuracy slightly over the initial value of each (62.5%) up to 64.4% with Logistic Regression using Lag1 and Lag2 predictors and a cutoff on posterior probabilities of .527.
+
+While some of the transformations had greater than 50% accuracies, none performed as well as just using Lag1 and Lag2 as predictors.
+
+
+
+
